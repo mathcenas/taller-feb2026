@@ -1,18 +1,45 @@
 ---
-- hosts: centos
+- hosts: linux
   become: true
 
   tasks:
 
-  - name: update all installed packages
+  - name: update all installed packages in CentOS
     ansible.builtin.dnf:
       name: "*"
       state: latest 
     notify: Reboot Servers
+    when: ansible_os_family == "RedHat"
+  
+  - name: Update all installed pakacges in Ubuntu
+    ansible.builtin.apt:
+     name: "*"
+     state: latest
+     update_cache: true
+    notify: Reboot Servers
+    when: ansible_os_family == "Debian"
+
+  - name: disable root login en centos
+    ansible.builtin.lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^#?PermitRootLogin'
+      line: 'PermitRootLogin no'
+      state: present
+      validate: '/usr/sbin/sshd -t -f %s'
+    notify: Reiniciar SSH
+
+  - name: Reiniciar SSH
+    ansible.builtin.systemd_service:
+      name: "{{ 'sshd' if ansible_os_family == 'RedHat' else 'ssh' }}"
+      state: restarted
+      enabled: yes # para asegurar que inicie 
 
   handlers:
 
   - name: Reboot Servers
     ansible.builtin.reboot:
-
+  - name: Reiniciar SSH
+    ansible.builtin.systemd_service:
+      name: sshd
+      state: restarted
  
