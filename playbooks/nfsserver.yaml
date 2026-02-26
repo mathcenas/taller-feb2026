@@ -1,6 +1,6 @@
 ---
 - name: Reparar Repositorios e Instalar NFS
-  hosts: centos
+  hosts: nfs01
   become: yes
   vars:
     nfs_export_path: "/srv/nfs/shared"
@@ -61,3 +61,13 @@
         immediate: yes
       loop: [nfs, mountd, rpc-bind]
       ignore_errors: yes
+
+    - name: comy test to server
+      ansible.builtin.template:
+        src: ../templates/README-NFS.j2
+        dest: /srv/nfs/shared/README-NFS.txt
+        owner: nobody
+        mode: u=r,g=r,o=r
+    
+    
+

@@ -1,0 +1,36 @@
+---
+- name: Validar estado de AutoFS y montaje NFS
+  hosts: ubuntu
+  become: true
+
+  tasks:
+    - name: 1. Verificar si el servicio AutoFS está activo
+      ansible.builtin.systemd_service:
+        name: autofs
+      register: autofs_status
+
+    - name: Mostrar estado del servicio
+      ansible.builtin.debug:
+        msg: "El servicio AutoFS está {{ autofs_status.status.ActiveState }}"
+
+    - name: 2. Forzar el automontaje y listar archivos
+      # Intentamos listar el contenido. Esto dispara el montaje de AutoFS.
+      ansible.builtin.command: ls /mnt/shared
+      register: ls_result
+      changed_when: false
+      failed_when: false
+
+    - name: 3. Verificar si el punto de montaje aparece en el kernel
+      # Buscamos la IP del CentOS en los montajes activos
+      ansible.builtin.shell: "mount | grep 192.168.10.11"
+      register: mount_check
+      changed_when: false
+      failed_when: false
+
+    - name: Resultado Final de la Validación
+      ansible.builtin.debug:
+        msg: 
+          - "--- REPORTE DE NFS ---"
+          - "Acceso a carpeta: {{ 'EXITOSO' if ls_result.rc == 0 else 'FALLIDO' }}"
+          - "Confirmación de montaje: {{ 'CONECTADO' if mount_check.rc == 0 else 'DESCONECTADO' }}"
+      failed_when: ls_result.rc != 0 or mount_check.rc != 0
